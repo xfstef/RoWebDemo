@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useState } from 'react';
 import { StyleSheet, View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { Button, Icon } from 'react-native-elements';
 import { useSelector, useDispatch } from 'react-redux';
+import { useIsFocused } from '@react-navigation/native';
 
 import * as homeScreenActions from '../store/actions/homeScreen';
 import ExchangeListItem from '../components/ExchangeListItem';
@@ -17,6 +18,8 @@ const HomeScreen = ({navigation}) => {
     const isServerReachable = useSelector(state => state.homeScreen.isServerReachable);
     const [isLoading, setIsLoading] = useState(true);
     const [delay, setDelay] = useState(currentRefreshRate * 1000);
+    // We require to know when the home screen is displayed / focused.
+    const isFocused = useIsFocused();
     // Function used to get the exchange rates.
     const getRates = useCallback(async (currency) => {
         setIsLoading(true);
@@ -38,9 +41,11 @@ const HomeScreen = ({navigation}) => {
     }, [currentRefreshRate]);
     // Custom Hook used to periodically poll the API for the latest exchange rates.
     useInterval(() => {
-        getRates(currentCurrency).then(() => {
-            setIsLoading(false);
-        });
+        // We will only call the get rates API when the screen is focused.
+        if(isFocused)
+            getRates(currentCurrency).then(() => {
+                setIsLoading(false);
+            });
     }, delay);
     // Method used to navigate between this screen and the History and Settings.
     const navigateTo = (routeName) => {
@@ -72,7 +77,6 @@ const HomeScreen = ({navigation}) => {
         isOffline = 
         <View>
             <Text style={styles.currencyText}>Server could not be reached!</Text>
-            <Text style={styles.currencyText}>Last Updated: {currentLastUpdate}</Text>
         </View>
     }
 
@@ -113,6 +117,7 @@ const HomeScreen = ({navigation}) => {
             />
         </View>
         {isOffline}
+        <Text style={styles.currencyText}>Last Updated: {currentLastUpdate}</Text>
         <Text style={styles.currencyText}>1 {currentCurrency} =</Text>
         {list}
       </View>
